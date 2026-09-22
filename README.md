@@ -29,7 +29,7 @@ Pentox is a small, hackable Python + C project that:
 ## Install
 
 ```sh
-git clone <your-repo-url> pentox
+git clone https://github.com/vin1397/pentox.git
 cd pentox
 ./install.sh            # → ~/.local + systemd user watcher
 ```
