@@ -1,0 +1,7 @@
+#!/bin/sh
+# pentox — tiny launcher: capture + overlay for a single game command.
+# Usage: pentox run -- vkcube        pentox run -- %command% (Steam)
+set -e
+PYTHONPATH="${HOME}/.local/lib/pentox${PYTHONPATH:+:$PYTHONPATH}"
+export PYTHONPATH
+exec python3 -m pentox "$@"

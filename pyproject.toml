@@ -1,0 +1,14 @@
+[build-system]
+requires = ["setuptools>=61"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "pentox"
+version = "0.1.0"
+description = "A from-scratch Linux gaming overlay — capture, HUD, watcher."
+readme = "README.md"
+requires-python = ">=3.9"
+license = { file = "LICENSE" }
+
+[project.scripts]
+pentox = "pentox.cli:main"

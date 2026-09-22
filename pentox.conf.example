@@ -1,0 +1,32 @@
+# Pentox configuration
+# Copy to: ~/.config/pentox/pentox.conf
+# key = value, '#' comments, unknown keys ignored, everything optional.
+
+# --- window ---
+position = top-right        # top-right | top-left | bottom-right | bottom-left
+width = 380
+margin_x = 16
+margin_y = 16
+radius = 16
+bg_alpha = 0.78
+
+# --- theme (hex RRGGBB, no '#') ---
+bg = 0B0812
+accent = B9A3FF
+text = EDE8FF
+muted = 9C8CD4
+border = B9A3FF
+border_alpha = 0.16
+font = JetBrainsMono Nerd Font
+font_size = 11
+
+# --- behavior ---
+update_ms = 120             # overlay refresh rate
+notify_enabled = true       # "whereabouts" notification on game start
+chip_enabled = true         # taskbar tab pill while a game runs
+watch_interval_s = 1.0      # game-window poll interval
+
+# --- metrics ---
+gpu_pci = auto              # or e.g. 0000:05:00.0 to pin a specific GPU
+show_junction = true
+show_fan = true
