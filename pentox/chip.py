@@ -14,8 +14,14 @@ import time
 
 import gi
 gi.require_version("Gtk", "3.0")
-gi.require_version("GtkLayerShell", "0.1")
-from gi.repository import Gtk, GLib, Gdk, GtkLayerShell  # noqa: E402
+from gi.repository import Gtk, GLib, Gdk  # noqa: E402
+
+# layer-shell is optional — the Chip class falls back to a plain window
+try:
+    gi.require_version("GtkLayerShell", "0.1")
+    from gi.repository import GtkLayerShell  # noqa: E402,F401
+except (ValueError, ImportError):
+    GtkLayerShell = None
 
 from . import APP_NAME, fpsreader
 from .config import load as load_cfg

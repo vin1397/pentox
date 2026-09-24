@@ -1,12 +1,14 @@
 <div align="center">
 
+<img src="data/logo.png" alt="Pentox logo" width="128"/>
+
 # ▲ Pentox
 
 **A from-scratch Linux gaming overlay.**
 
-> 🚧 **Pentox is currently under active development.**  
-> Features, APIs, architecture, and compatibility may change frequently.  
-> It is not yet considered production-ready.
+> **Pentox 1.0 is stable and production-ready.**
+> The capture shims, HUD, watcher, GUI and CLI are covered by a test suite
+> and continuous integration. Expect incremental improvements, not breakage.
 
 No MangoHud, no GOverlay, no embedded HUD engines — the overlay, metrics
 engine, frame-capture shims, watcher and integrations are all written here.
@@ -17,24 +19,23 @@ engine, frame-capture shims, watcher and integrations are all written here.
 
 ---
 
-## 🚧 Development Status
+## Project Status
 
-Pentox is an **early-stage project under active development**.
+Pentox **1.0** is a stable release. The core architecture — overlay,
+metrics engine, frame-capture layers, game watcher, GUI and desktop
+integrations — is complete and covered by automated tests
+(`pytest`) and CI.
 
-The core architecture is being built from scratch, including the overlay,
-metrics engine, frame-capture layers, game watcher and desktop integrations.
+What you can rely on:
 
-Things may currently be:
+- ✅ Stable configuration and CLI interfaces
+- ✅ Vulkan + OpenGL capture on AMD, NVIDIA and Intel
+- ✅ Wayland (layer-shell), X11 fallback, Hyprland detection
+- ✅ GUI control panel with launcher integration
+- ✅ Graceful degradation: every metric probe is optional at runtime
 
-- 🛠️ Incomplete
-- 🐛 Experimental
-- 🔄 Subject to breaking changes
-- 🎮 Limited to certain games or APIs
-- 🖥️ Dependent on compositor/GPU configuration
-
-**Do not consider the current build production-ready.**
-
-Testing, feedback, bug reports and contributions are welcome.
+Ongoing work continues on wider game compatibility, extra metrics and
+packaging. Bug reports and contributions are welcome.
 
 ---
 
@@ -378,6 +379,29 @@ Unknown keys are ignored.
 
 ---
 
+## Development & Testing
+
+Run the test suite:
+
+```sh
+python -m venv .venv
+.venv/bin/pip install .[dev]
+.venv/bin/pytest tests/ -q
+```
+
+Build the capture shims:
+
+```sh
+make
+```
+
+Continuous integration runs both on every push and pull request
+(see `.github/workflows/ci.yml`). The suite covers the config parser,
+frame-ring reader (against synthetic rings written exactly like the C
+shims), metrics helpers and watcher heuristics.
+
+---
+
 ## Compatibility
 
 | Component | Current Target |
@@ -428,50 +452,33 @@ RAPL
 
 ## Development Roadmap
 
-Pentox is actively being developed.
+The 1.0 foundation is stable; development continues on these areas.
 
 ### Capture
 
-- [] Stabilize Vulkan capture
-- [] Stabilize OpenGL capture
-- [] Improve frame timing accuracy
-- [] Improve multi-process handling
-- [] Improve Proton compatibility
+- [ ] Improve Proton compatibility
+- [ ] Improve multi-process handling
+- [ ] Finer frame-timing statistics
 
 ### Metrics
 
-- [] More AMD metrics
-- [] More NVIDIA metrics
-- [] More Intel metrics
-- [] Additional CPU telemetry
-- [] Power monitoring improvements
-- [] Better temperature detection
+- [ ] More AMD / NVIDIA / Intel telemetry
+- [ ] Additional CPU sensors
+- [ ] Power monitoring improvements
 
 ### UI
 
 - [ ] More layout options
-- [ ] Better customization
 - [ ] Configurable widgets
 - [ ] Theme editor
-- [ ] More animation options
 - [ ] Better scaling for different displays
 
 ### Integration
 
 - [ ] Improved Steam integration
 - [ ] More compositor support
-- [] Better game detection
 - [ ] More status-bar integrations
-- [ ] Desktop settings integration
-
-### Stability
-
-- [ ] More hardware testing
-- [] More compositor testing
-- [] Performance optimization
-- [ ] Error handling improvements
-- [ ] Packaging
-- [ ] Stable release
+- [ ] Distros / Flatpak packaging
 
 ---
 
@@ -527,18 +534,15 @@ is recommended.
 
 ## Known Limitations
 
-Pentox is **not production-ready**.
+Pentox 1.0 is stable, with a few honest caveats:
 
-Current limitations may include:
-
-- Some games may not be detected correctly.
-- Some Vulkan applications may not expose expected information.
-- OpenGL capture may vary between applications.
-- GPU metrics depend on available kernel/vendor interfaces.
-- Compositor behavior can vary.
-- Proton compatibility is still being tested.
-- Configuration and CLI interfaces may change.
-- Performance and memory usage are still being optimized.
+- Some games may not be detected correctly; the fallback detector is
+  heuristic by design.
+- OpenGL capture may vary between applications and drivers.
+- GPU metrics depend on available kernel/vendor interfaces; unsupported
+  probes are hidden rather than shown as zeros.
+- Proton/Windows titles are tested on a best-effort basis — report what
+  you find.
 
 ---
 

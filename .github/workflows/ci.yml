@@ -1,0 +1,46 @@
+name: CI
+
+on:
+  push:
+    branches: [main, master, arch]
+  pull_request:
+
+jobs:
+  tests:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+      - name: Install system deps
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y libgirepository1.0-dev gir1.2-gtk-3.0 \
+            python3-gi python3-cairo libcairo2-dev libvulkan-dev
+      - name: Install package
+        run: |
+          python -m pip install --upgrade pip
+          pip install .[dev]
+      - name: Run tests
+        run: pytest tests/ -q
+
+  build-c:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Build capture shims
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y libvulkan-dev
+          make
+      - name: Smoke-test ring format constants match
+        run: |
+          python3 - <<'EOF'
+          import re, pathlib
+          c = pathlib.Path("src/ring.h").read_text()
+          py = pathlib.Path("pentox/fpsreader.py").read_text()
+          for name in ("PENTOX_MAGIC", "PENTOX_CAPACITY", "PENTOX_ENTRY_SIZE"):
+              assert name in c and name.split("PENTOX_")[1] in py
+          print("ring layout constants consistent")
+          EOF

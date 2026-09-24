@@ -5,7 +5,7 @@ sampler (self-written Vulkan layer + GL preload shim), watcher and
 integrations are all implemented in this repository (see README.md).
 """
 
-__version__ = "0.1.0"
+__version__ = "1.0.0"
 APP_NAME = "Pentox"
 APP_ID = "io.github.pentox"
 

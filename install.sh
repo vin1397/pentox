@@ -10,11 +10,14 @@ SRC="$(cd "$(dirname "$0")" && pwd)"
 if [ "$1" = "--uninstall" ]; then
   systemctl --user disable --now pentox-watch.service 2>/dev/null || true
   rm -f "$HOME/.config/systemd/user/pentox-watch.service"
-  rm -f "$PREFIX/bin/pentox"
   rm -rf "$PREFIX/lib/pentox"
+  rm -f "$PREFIX/bin/pentox"
   rm -f "$HOME/.local/share/vulkan/implicit_layer.d/Pentox_layer.json"
   rm -f "$HOME/.local/share/applications/io.github.pentox.desktop"
   rm -f "$HOME/.local/share/icons/hicolor/scalable/apps/pentox.svg"
+  rm -f "$HOME/.local/share/icons/hicolor/256x256/apps/pentox.png"
+  rm -f "$HOME/.local/share/icons/hicolor/128x128/apps/pentox.png"
+  rm -f "$HOME/.local/share/icons/hicolor/64x64/apps/pentox.png"
   rm -f "$HOME/.cache/pentox-gui.css"
   update-desktop-database "$HOME/.local/share/applications" 2>/dev/null || true
   gtk-update-icon-cache -f -t "$HOME/.local/share/icons/hicolor" 2>/dev/null || true
@@ -30,22 +33,27 @@ echo "==> installing python package -> $PREFIX/lib/pentox"
 rm -rf "$PREFIX/lib/pentox"
 mkdir -p "$PREFIX/lib/pentox" "$PREFIX/bin"
 cp -r "$SRC/pentox" "$PREFIX/lib/pentox/pentox"
-mkdir -p "$PREFIX/lib/pentox/src"
+mkdir -p "$PREFIX/lib/pentox/src" "$PREFIX/lib/pentox/data"
 cp "$SRC"/src/*.so "$PREFIX/lib/pentox/src/"
 cp "$SRC/src/Pentox_layer.json" "$PREFIX/lib/pentox/src/"
+[ -f "$SRC/data/logo.png" ] && cp "$SRC/data/logo.png" "$PREFIX/lib/pentox/data/logo.png"
 find "$PREFIX/lib/pentox" -name '__pycache__' -type d -exec rm -rf {} + 2>/dev/null || true
 
 echo "==> installing launcher -> $PREFIX/bin/pentox"
 install -m 0755 "$SRC/bin/pentox" "$PREFIX/bin/pentox"
 
-echo "==> installing desktop entry + icon (application search: 'pentox')"
+echo "==> installing desktop entry + icons (application search: 'pentox')"
 APPS="$HOME/.local/share/applications"
-ICONDIR="$HOME/.local/share/icons/hicolor/scalable/apps"
-mkdir -p "$APPS" "$ICONDIR"
+HI="$HOME/.local/share/icons/hicolor"
+mkdir -p "$APPS" "$HI/scalable/apps" "$HI/256x256/apps" "$HI/128x128/apps" "$HI/64x64/apps"
 install -m 0644 "$SRC/data/io.github.pentox.desktop" "$APPS/io.github.pentox.desktop"
-install -m 0644 "$SRC/data/icons/hicolor/scalable/apps/pentox.svg" "$ICONDIR/pentox.svg"
+install -m 0644 "$SRC/data/icons/hicolor/scalable/apps/pentox.svg" "$HI/scalable/apps/pentox.svg"
+for sz in 256x256 128x128 64x64; do
+  [ -f "$SRC/data/icons/hicolor/$sz/apps/pentox.png" ] && \
+    install -m 0644 "$SRC/data/icons/hicolor/$sz/apps/pentox.png" "$HI/$sz/apps/pentox.png"
+done
 update-desktop-database "$APPS" 2>/dev/null || true
-gtk-update-icon-cache -f -t "$HOME/.local/share/icons/hicolor" 2>/dev/null || true
+gtk-update-icon-cache -f -t "$HI" 2>/dev/null || true
 
 echo "==> registering Vulkan implicit layer (auto-capture for every Vulkan app)"
 VLDIR="$HOME/.local/share/vulkan/implicit_layer.d"
