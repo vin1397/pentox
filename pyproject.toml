@@ -29,5 +29,9 @@ dev = ["pytest>=7"]
 [project.scripts]
 pentox = "pentox.cli:main"
 
+[tool.setuptools.packages.find]
+where = ["."]
+include = ["pentox*"]
+
 [tool.pytest.ini_options]
 testpaths = ["tests"]
