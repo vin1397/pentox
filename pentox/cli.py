@@ -127,6 +127,8 @@ def cmd_chip(args):
         else:
             print(f"▲ {APP_NAME} idle")
         return 0
+    if not load_cfg().chip_enabled:
+        return 0
     from .chip import main_chip
     main_chip()
     return 0
@@ -134,6 +136,12 @@ def cmd_chip(args):
 
 def cmd_toggle(args):
     subprocess.run(["pkill", "-USR1", "-f", "pentox.overlay"])
+    return 0
+
+
+def cmd_gui(args):
+    from .gui import main_gui
+    main_gui()
     return 0
 
 
@@ -223,6 +231,9 @@ def build_parser():
 
     p = sub.add_parser("toggle", help="toggle overlay visibility")
     p.set_defaults(fn=cmd_toggle)
+
+    p = sub.add_parser("gui", help="open the Pentox control panel")
+    p.set_defaults(fn=cmd_gui)
 
     p = sub.add_parser("doctor", help="self-test")
     p.set_defaults(fn=cmd_doctor)

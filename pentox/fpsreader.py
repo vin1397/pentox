@@ -73,8 +73,10 @@ class Ring:
             self._mmap = None
 
     def sample(self, window_s: float = 1.0):
-        """Return (fps, frame_times_ns_desc_list, api, last_pid)."""
-        if not self._mmap:
+        """Return (fps, frame_times_ns_desc_list, api, last_pid).
+
+        Lazily opens the ring on first use so callers cannot forget."""
+        if not self._mmap and not self.open():
             return 0.0, [], 0, 0
         widx = int.from_bytes(self._mmap[16:24], "little")
         now = time.monotonic_ns()
@@ -99,10 +101,16 @@ class Ring:
         return fps, frames, api, pid
 
     def frametimes_ms(self, limit: int = 240):
-        fps, frames, api, pid = self.sample(window_s=60.0)
-        frames = sorted(frames)               # chronological
-        times = [frames[i] / 1e6 for i in range(len(frames))]
-        diffs = [times[i + 1] - times[i] for i in range(1, len(times) - 1)]
+        """Recent frametimes in ms, oldest → newest.
+
+        Scans back over up to `limit+1` frames so each diff is a real
+        inter-frame gap (n-1 gaps from n frames) — previously the last
+        sample was computed from a frame pair straddling the window edge.
+        """
+        _, frames, api, pid = self.sample(window_s=60.0)
+        frames = sorted(frames)[-limit - 1:]  # chronological, cap n
+        times = [f / 1e6 for f in frames]
+        diffs = [times[i + 1] - times[i] for i in range(len(times) - 1)]
         return diffs[-limit:], api, pid
 
 

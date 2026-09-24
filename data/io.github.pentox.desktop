@@ -1,0 +1,13 @@
+[Desktop Entry]
+Type=Application
+Version=1.0
+Name=Pentox
+GenericName=Gaming Overlay
+Comment=Linux gaming overlay — metrics HUD, watcher and capture
+Exec=pentox gui
+Icon=pentox
+Terminal=false
+Categories=Game;GTK;
+Keywords=game;overlay;hud;fps;gpu;cpu;metrics;benchmark;
+StartupNotify=true
+StartupWMClass=pentox-gui

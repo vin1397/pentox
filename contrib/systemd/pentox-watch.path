@@ -1,0 +1,10 @@
+[Unit]
+Description=Watch for Pentox frame rings (game capture started)
+
+[Path]
+PathExistsGlob=/tmp/pentox-run-*.ring
+# keep watching while a ring is alive so the watcher can end sessions
+Unit=pentox-watch.service
+
+[Install]
+WantedBy=graphical-session.target

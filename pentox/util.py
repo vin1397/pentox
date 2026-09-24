@@ -7,6 +7,35 @@ import pathlib
 import time
 
 
+def log_file() -> pathlib.Path:
+    """Persistent user log (errors and watcher diagnostics)."""
+    p = state_dir() / "pentox.log"
+    try:
+        p.parent.mkdir(parents=True, exist_ok=True)
+    except OSError:
+        pass
+    return p
+
+
+def log_error(msg: str, errno: bool = False):
+    """Best-effort error logging: stderr + $XDG_STATE_HOME/pentox/pentox.log."""
+    import sys
+    import traceback
+    line = msg
+    if errno:
+        etype, evalue, _ = sys.exc_info()
+        if etype is not None:
+            line = f"{msg}: {etype.__name__}: {evalue}"
+    print(line, file=sys.stderr, flush=True)
+    try:
+        with open(log_file(), "a", encoding="utf-8") as f:
+            f.write(f"[{time.strftime('%Y-%m-%d %H:%M:%S')}] {line}\n")
+            if errno:
+                traceback.print_exc(file=f)
+    except OSError:
+        pass
+
+
 def xdg_config_home() -> pathlib.Path:
     return pathlib.Path(os.environ.get("XDG_CONFIG_HOME", "~/.config")).expanduser()
 

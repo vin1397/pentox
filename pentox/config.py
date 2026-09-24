@@ -8,6 +8,7 @@ here so a missing file still produces a fully working overlay.
 from __future__ import annotations
 
 import os
+import pathlib
 from dataclasses import dataclass
 
 from . import theme
@@ -81,6 +82,43 @@ class PentoxConfig:
                 except ValueError:
                     pass
         return self
+
+
+    def save(self, values: dict):
+        """Update `values` in the config file, preserving comments and
+        unknown keys. Keys are lower-cased dataclass field names."""
+        self.save_path(config_file(), values)
+
+    def save_path(self, path, values: dict):
+        """Update `values` in `path`, preserving comments and unknown keys."""
+        path = pathlib.Path(path)
+        path.parent.mkdir(parents=True, exist_ok=True)
+        try:
+            lines = path.read_text(encoding="utf-8", errors="replace").splitlines()
+        except OSError:
+            lines = []
+        seen = set()
+        out = []
+        for line in lines:
+            stripped = line.split("#", 1)[0].strip()
+            if "=" in stripped:
+                k = stripped.split("=", 1)[0].strip().lower()
+                if k in values:
+                    if k in seen:
+                        continue           # drop duplicates
+                    seen.add(k)
+                    out.append(_format_pair(k, values[k]))
+                    continue
+            out.append(line)
+        for k, v in values.items():
+            if k not in seen:
+                out.append(_format_pair(k, v))
+        path.write_text("\n".join(out) + "\n", encoding="utf-8")
+
+
+def _format_pair(k: str, v) -> str:
+    sv = ("true" if v else "false") if isinstance(v, bool) else str(v)
+    return f"{k} = {sv}"
 
 
 def load() -> PentoxConfig:

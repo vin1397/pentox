@@ -132,6 +132,7 @@ class Chip(Gtk.Window):
 
 
 def main_chip():
+    GLib.set_prgname("pentox-chip")      # Wayland app_id for window rules
     cfg = load_cfg()
     signal.signal(signal.SIGINT, signal.SIG_DFL)
     Chip(cfg).run()

@@ -2,6 +2,9 @@
 
 Everything on screen is rendered here: glass panel, sections, bars,
 frametime graph. No HUD engine is embedded.
+
+On Wayland the HUD anchors itself through gtk-layer-shell; anywhere else
+(X11, nested windows, tests) it falls back to a plain always-on-top window.
 """
 
 from __future__ import annotations
@@ -14,8 +17,18 @@ import sys
 
 import gi
 gi.require_version("Gtk", "3.0")
-gi.require_version("GtkLayerShell", "0.1")
-from gi.repository import Gtk, GLib, Gdk, GtkLayerShell  # noqa: E402
+from gi.repository import Gtk, GLib, Gdk  # noqa: E402
+
+# GtkLayerShell is optional — this import must never be fatal.
+try:
+    gi.require_version("GtkLayerShell", "0.1")
+    from gi.repository import GtkLayerShell  # noqa: E402
+    HAVE_LAYER_SHELL = True
+except (ValueError, ImportError):
+    GtkLayerShell = None
+    HAVE_LAYER_SHELL = False
+
+import cairo  # noqa: E402
 
 from . import fpsreader, metrics
 from .config import load as load_cfg
@@ -44,6 +57,7 @@ class Hud(Gtk.Window):
         self.cpu = metrics.CpuSampler()
         self.cpu_load = None
         self.cpu_power = None
+        self.gpu_sample_cache = metrics.gpu_sample(self.gpu)
         self.fps_hist = collections.deque(maxlen=240)
         self._toggle_acc = 0.0
 
@@ -53,7 +67,7 @@ class Hud(Gtk.Window):
         self.set_skip_taskbar_hint(False)     # appears as a taskbar entry
         self.set_skip_pager_hint(True)
         self.set_wmclass("pentox-overlay", "Pentox Overlay")
-        self.set_default_size(cfg.width, 10)
+        self.set_default_size(cfg.width, 120)
 
         screen = self.get_screen()
         visual = screen.get_rgba_visual()
@@ -70,10 +84,16 @@ class Hud(Gtk.Window):
         except AttributeError:
             pass
         GLib.timeout_add(cfg.update_ms, self.tick)
+        GLib.timeout_add(max(200, cfg.update_ms), self._refresh_gpu)
 
     # ------------------------------------------------------------ shell ---
 
     def _setup_layer_shell(self):
+        """Anchor via gtk-layer-shell when available; X11/other fallback."""
+        if not HAVE_LAYER_SHELL:
+            self.layer_shell = False
+            self._fallback_window()
+            return
         try:
             ls = GtkLayerShell
             ls.init_for_window(self)
@@ -88,9 +108,13 @@ class Hud(Gtk.Window):
             ls.set_margin(self, m2, self.cfg.margin_y)
             self.layer_shell = True
         except Exception:
-            self.layer_shell = False   # X11 fallback: plain always-on-top window
-            self.set_keep_above(True)
-            self.set_position(Gtk.WindowPosition.NONE)
+            self.layer_shell = False
+            self._fallback_window()
+
+    def _fallback_window(self):
+        """X11 / non-layer-shell fallback: plain always-on-top window."""
+        self.set_keep_above(True)
+        self.set_position(Gtk.WindowPosition.NONE)
 
     # ------------------------------------------------------------ data ----
 
@@ -153,6 +177,13 @@ class Hud(Gtk.Window):
         else:
             self.show_all()
             self.queue_draw()   # show_all alone does NOT repaint a mapped window
+        return True
+
+    def _refresh_gpu(self):
+        try:
+            self.gpu_sample_cache = metrics.gpu_sample(self.gpu)
+        except Exception:
+            pass
         return True
 
     def toggle(self):
@@ -330,12 +361,6 @@ class Hud(Gtk.Window):
             self._rounded(cr, x, y, max(BAR_HEIGHT, w * frac), BAR_HEIGHT, BAR_HEIGHT / 2)
             cr.fill()
 
-    def _two_col(self, cr, x, y, w, label, value, size):
-        self._text(cr, x, y, label, size * 0.92, self.cfg.muted)
-        vw = self._measure(cr, value, size * 0.95)
-        self._text(cr, x + w / 2, y, value, size * 0.95, self.cfg.text)
-        return y + size * 1.55
-
     def _gpu_section(self, cr, x, y, w):
         base = self.cfg.font_size
         s = self.gpu_sample_cache
@@ -347,7 +372,6 @@ class Hud(Gtk.Window):
         self._text(cr, x, y + head + base * 1.5, nm, base * 0.9, self.cfg.muted)
         # right column: load + temp
         load_s = f"{s['busy']:.0f}%" if s["busy"] is not None else "—"
-        lw = self._measure(cr, load_s, head, True)
         self._text(cr, x + w / 2, y + head, load_s, head, self.cfg.accent, bold=True)
         if s["temp"] is not None:
             tcol = self.cfg.text
@@ -372,14 +396,17 @@ class Hud(Gtk.Window):
             self._text(cr, x + w - vw, yy + base * 1.7, vs, base * 0.9, self.cfg.text)
         yy += BAR_HEIGHT + base * 2.0
         # two-column details
+        fan_row = ("fan", f"{s['fan_rpm']:.0f} RPM") \
+            if (self.cfg.show_fan and s["fan_rpm"] is not None) else (None, None)
         L = [("core", f"{s['core_mhz']:.0f} MHz" if s["core_mhz"] else None),
              ("power", f"{s['power_w']:.1f} W" if s["power_w"] else None),
-             ("fan", f"{s['fan_rpm']:.0f} RPM" if s["fan_rpm"] is not None else None)]
+             fan_row]
         R = [("mem clock", f"{s['mem_mhz']:.0f} MHz" if s["mem_mhz"] else None),
-             ("junction", f"{s['junction']:.0f}°C" if (s["junction"] and self.cfg.show_junction) else None),
+             ("junction", f"{s['junction']:.0f}°C"
+              if (s["junction"] and self.cfg.show_junction) else None),
              (None, None)]
         for (lk, lv), (rk, rv) in zip(L, R):
-            if lv:
+            if lk and lv:
                 self._text(cr, x, yy, lk, base * 0.85, self.cfg.muted)
                 self._text(cr, x + w / 4, yy, lv, base * 0.95, self.cfg.text)
             if rk and rv:
@@ -391,7 +418,6 @@ class Hud(Gtk.Window):
     def _cpu_section(self, cr, x, y, w):
         base = self.cfg.font_size
         head = base * SECTION_SCALE
-        s = base
         self._text(cr, x, y + head, "CPU", head, self.cfg.text, bold=True)
         load = self.cpu_load
         load_s = f"{load:.0f}%" if load is not None else "—"
@@ -429,9 +455,8 @@ class Hud(Gtk.Window):
         if not m:
             return y
         yy = y
-        lab = "RAM"
         used = human_gib(m["used_kib"], m["total_kib"])
-        self._text(cr, x, yy + base, lab, base * 1.1, self.cfg.text, bold=True)
+        self._text(cr, x, yy + base, "RAM", base * 1.1, self.cfg.text, bold=True)
         uw = self._measure(cr, used, base * 0.95)
         self._text(cr, x + w / 2, yy + base, used, base * 0.95, self.cfg.text)
         pct_s = f"{m['pct']:.0f}%"
@@ -440,6 +465,14 @@ class Hud(Gtk.Window):
         yy += base * 1.4
         self._bar(cr, x, yy, w * BAR_WIDTH_FRAC, m["pct"] / 100.0)
         yy += BAR_HEIGHT + base * 1.2
+        sw = metrics.swap_sample()
+        if sw.get("total_kib", 0) > 0:
+            ss = f"{sw['used_kib'] / 1048576:.1f} / {sw['total_kib'] / 1048576:.1f} GiB"
+            self._text(cr, x, yy + base * 0.9, "swap", base * 0.85, self.cfg.muted)
+            sw_w = self._measure(cr, ss, base * 0.85)
+            self._text(cr, x + w - sw_w, yy + base * 0.9, ss,
+                       base * 0.85, self.cfg.muted)
+            yy += base * 1.4
         return yy
 
     def _footer(self, cr, x, y, w):
@@ -459,43 +492,14 @@ class Hud(Gtk.Window):
 
     def run(self):
         self.show_all()
-        if not self.layer_shell:
-            pass
         Gtk.main()
 
 
 def main_overlay():
+    GLib.set_prgname("pentox-overlay")   # Wayland app_id for window rules
     cfg = load_cfg()
     pid = None
     if "--pid" in sys.argv:
         pid = int(sys.argv[sys.argv.index("--pid") + 1])
     game = os.environ.get("PENTOX_GAME", "")
     Hud(cfg, pid, game).run()
-
-
-# cairo is imported lazily here so doctor can run without the overlay deps
-import cairo  # noqa: E402
-
-gpu_sample_cache = {}
-
-
-def _patch_gpu_cache(hud):
-    hud.gpu_sample_cache = metrics.gpu_sample(hud.gpu)
-
-
-_orig_init = Hud.__init__
-
-
-def _init_with_cache(self, cfg, target_pid, game=""):
-    _orig_init(self, cfg, target_pid, game)
-    self.gpu_sample_cache = metrics.gpu_sample(self.gpu)
-    GLib.timeout_add(max(200, cfg.update_ms), self._refresh_gpu)
-
-
-def _refresh_gpu(self):
-    self.gpu_sample_cache = metrics.gpu_sample(self.gpu)
-    return True
-
-
-Hud.__init__ = _init_with_cache
-Hud._refresh_gpu = _refresh_gpu

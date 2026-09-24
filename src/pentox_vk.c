@@ -55,17 +55,19 @@ static void pentox_push_vk(void) {
             memcpy(map + 16, &zero, 8);
         }
     }
-    uint64_t idx;
-    memcpy(&idx, map + 16, 8);
+    /* Same atomic fetch-and-add discipline as the GL shim (ring.h users):
+     * games presenting from multiple threads take unique slots instead of
+     * racing through a read-modify-write on the header index. */
+    static uint64_t *hdr_idx = NULL;
+    if (!hdr_idx) hdr_idx = (uint64_t *)(map + 16);
+    uint64_t idx = __sync_fetch_and_add(hdr_idx, 1ull);
     unsigned char *slot = map + PENTOX_HEADER + (idx % PENTOX_CAPACITY) * PENTOX_ENTRY_SIZE;
     uint64_t t = pentox_now_ns();
     uint32_t pid = (uint32_t)getpid();
     uint32_t api = PENTOX_API_VULKAN;
-    memcpy(slot + 0,  &t,   8);
-    memcpy(slot + 8,  &pid, 4);
-    memcpy(slot + 12, &api, 4);
-    idx++;
-    memcpy(map + 16, &idx, 8);
+    __atomic_store_n((uint64_t *)(slot + 0), t, __ATOMIC_RELAXED);
+    __atomic_store_n((uint32_t *)(slot + 8), pid, __ATOMIC_RELAXED);
+    __atomic_store_n((uint32_t *)(slot + 12), api, __ATOMIC_RELAXED);
 }
 
 /* ---------------------------- hooked call ------------------------------ */

@@ -301,14 +301,16 @@ def mem_sample() -> dict:
 
 
 def swap_sample() -> dict:
+    total = used = None
     try:
         for line in (PROC / "meminfo").read_text().splitlines():
             if line.startswith("SwapTotal"):
-                t = int(line.split()[1])
-                if t <= 0:
-                    return {"total_kib": 0, "used_kib": 0, "pct": 0.0}
-            if line.startswith("SwapFree"):
-                pass
-    except OSError:
+                total = int(line.split()[1])
+            elif line.startswith("SwapFree"):
+                used = total - int(line.split()[1])
+        if total:                      # zero swap = present but disabled
+            return {"total_kib": total, "used_kib": max(0, used or 0),
+                    "pct": 100.0 * max(0, used or 0) / total}
+    except (OSError, ValueError, IndexError):
         pass
     return {}

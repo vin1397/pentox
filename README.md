@@ -87,6 +87,8 @@ Pentox aims to be a small, hackable Python + C project that:
 - Taskbar/status chip
 - Desktop notifications
 - Global overlay toggle
+- GUI control panel (`pentox gui`)
+- Application launcher entry (search "Pentox")
 
 ### 🎨 UI
 
@@ -109,8 +111,10 @@ cd pentox
 ./install.sh
 ```
 
-The installer installs Pentox into the user's local environment and registers
-the user-level watcher.
+The installer installs Pentox into the user's local environment, registers
+the user-level watcher and adds an application entry, so **Pentox shows up in
+your application launcher / search** — opening it starts the GUI control
+panel.
 
 ### Requirements
 
@@ -175,6 +179,16 @@ pentox watch
 ```
 
 The watcher is normally started automatically by the installer.
+
+### Open the control panel
+
+```sh
+pentox gui
+```
+
+Or just search for **Pentox** in your application launcher. The panel shows
+session status with live FPS, starts/stops the watcher, toggles the overlay,
+can launch a test capture and edits the common options.
 
 ### Toggle the overlay
 
@@ -295,6 +309,7 @@ watch.py
 pentox/
 ├── pentox/
 │   ├── cli.py
+│   ├── gui.py
 │   ├── overlay.py
 │   ├── chip.py
 │   ├── watch.py
@@ -309,6 +324,10 @@ pentox/
 │   ├── pentox_vk.c
 │   └── Pentox_layer.json
 │
+├── data/
+│   ├── io.github.pentox.desktop
+│   └── icons/
+│
 ├── bin/
 │   └── pentox
 │
@@ -321,6 +340,7 @@ pentox/
 | Component | Purpose |
 |---|---|
 | `cli.py` | Command-line interface |
+| `gui.py` | GTK3 control panel |
 | `overlay.py` | GTK3 + Cairo HUD |
 | `chip.py` | Taskbar/status chip |
 | `watch.py` | Game/session detection |
@@ -412,20 +432,20 @@ Pentox is actively being developed.
 
 ### Capture
 
-- [✅] Stabilize Vulkan capture
-- [✅] Stabilize OpenGL capture
-- [✅] Improve frame timing accuracy
-- [✅] Improve multi-process handling
-- [✅] Improve Proton compatibility
+- [] Stabilize Vulkan capture
+- [] Stabilize OpenGL capture
+- [] Improve frame timing accuracy
+- [] Improve multi-process handling
+- [] Improve Proton compatibility
 
 ### Metrics
 
-- [✅] More AMD metrics
-- [✅] More NVIDIA metrics
-- [✅] More Intel metrics
-- [✅] Additional CPU telemetry
-- [✅] Power monitoring improvements
-- [✅] Better temperature detection
+- [] More AMD metrics
+- [] More NVIDIA metrics
+- [] More Intel metrics
+- [] Additional CPU telemetry
+- [] Power monitoring improvements
+- [] Better temperature detection
 
 ### UI
 
@@ -440,15 +460,15 @@ Pentox is actively being developed.
 
 - [ ] Improved Steam integration
 - [ ] More compositor support
-- [✅] Better game detection
+- [] Better game detection
 - [ ] More status-bar integrations
 - [ ] Desktop settings integration
 
 ### Stability
 
 - [ ] More hardware testing
-- [✅] More compositor testing
-- [✅] Performance optimization
+- [] More compositor testing
+- [] Performance optimization
 - [ ] Error handling improvements
 - [ ] Packaging
 - [ ] Stable release
